@@ -1,2 +1,3 @@
-# ts_features
+# TS Features
+
 Module for extracting time series data components.
