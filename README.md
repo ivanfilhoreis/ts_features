@@ -45,12 +45,32 @@ The intra-day, open/close, and low/high features represent the daily oscillation
 
 ## Installation
 
-xxx
+Installation and use can be done as:
+
+```python
+!git clone https://github.com/ivanfilhoreis/ts_features.git
+!pip install -r requirements.txt
+```
 
 ## Usage
 
-xxx
+The most minimal example can be seen below:
+
+```python
+from ts_features import tsf_vectorizer
+import pandas as pd
+
+df = pd.read_csv("dataset/soja_CBOT.csv")
+df['Date'] = pd.to_datetime(df['Date'])
+df.sort_values(by='Date', inplace = True)
+df.reset_index(drop=True, inplace=True)
+
+tsf = tsf_vectorizer()
+df_tsf = tsf.fit_transform(df)
+
+df_tsf.sample(10)
+```
 
 ## Citing
 
-xxx
+In process.
