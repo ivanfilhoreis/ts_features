@@ -2,7 +2,7 @@
 
 Module for extracting time series data components.
 
-## Method: TS Features
+## 1. Method
 
 A Time Series $TS$ of size $m$ is defined as an ordered sequence of observations, i.e., $ TS=(s_1, s_2,..., s_m)$, where $s_t \in \mathbb{R}^d $ represents an observation $s$ at time $t$ with $d$ features. A time series can be composed of the following components:
 
@@ -43,7 +43,7 @@ TS Features is a method for extracting time series features from its components 
 
 The intra-day, open/close, and low/high features represent the daily oscillations of data points ($S_i^d$) in a time series. The features yearly, quarterly, monthly, and fortnightly volumes represent the percentage difference of the time series level ($L_j$) in each data point ($s_i$) within specific time intervals. The trends ($T$) features represent the results of the Mann-Kendall (MK) test applied to the time series within specific time intervals. The seasonality (seas.) or cyclical features indicate the percentage of trend occurrences within specific previous periods $S_j$. The level features represent the percentage difference between a price series (closing) level and its corresponding value within specific periods, such as yearly, quarterly, monthly, and fortnightly intervals.
 
-## Installation
+## 2. Installation
 
 Installation and use can be done as:
 
@@ -52,12 +52,11 @@ Installation and use can be done as:
 !pip install -r requirements.txt
 ```
 
-## Usage
+## 3. Usage
 
 The most minimal example can be seen below:
 
 ```python
-from ts_features import tsf_vectorizer
 import pandas as pd
 
 df = pd.read_csv("dataset/soja_CBOT.csv")
@@ -65,12 +64,40 @@ df['Date'] = pd.to_datetime(df['Date'])
 df.sort_values(by='Date', inplace = True)
 df.reset_index(drop=True, inplace=True)
 
+```
+The default parameters of TS-Features are:
+
+```python
+tsf_vectorizer(mult = True,            # multivariate (True) or univariate (False)
+               steps = 'wmsy',         # steps: week(w), monthly (m), split year (s), yearly(y)
+               levels = True,          # level (w,m,s,y)
+               trends = True,          # trends (w,m,s,y)
+               seas = True,            # seasonality (w,m,s,y)
+               vol = True,             # volume (w,m,s,y)
+               osc = True,             # daily oscilation (intra-day)
+               lag = False,            # lag
+               diff_vl = True,         # diff Open/Close, Low/High
+               feature = 'perc',       # Options: label, perc, value
+               slice_month = int(15),  # split the month into a set of days.
+               slice_year = int(3)     # split the year into a set of month.
+               )->None:
+```
+
+So, you can use fit_transform from tsf_vectorizer to extract features from time series components:
+
+```python
+from ts_features import tsf_vectorizer
+
 tsf = tsf_vectorizer()
 df_tsf = tsf.fit_transform(df)
 
-df_tsf.sample(10)
+df_tsf.sample()
 ```
 
-## Citing
+## 4. How to use TS Features
+
+A public version of TS Features is available in this [Jupyter Notebook](TS_Features.ipynb), with examples for extracting features from time series components.
+
+## 5. Citing
 
 In process.
