@@ -7,7 +7,7 @@ import numpy as np
 
 #__all__ = ['ts_features']
 
-class ts_features:
+class tsf_vectorizer:
     
     r"""
     This module extracts information from time series of prices.
