@@ -20,9 +20,10 @@ TS Features is a method for extracting time series features from its components 
 
 | Feature | Description |
 | --- | --- |
-| Intra-day                  | Percentual difference between $s_i^c$ and $s_{i+1}^c$.    | 
-| Open/Close                 | Percentual difference between $s_i^{d(o, c)}$.            |  
-| Low/High                   | Percentual difference between $s_i^{d(l, h)}$.            |  
+| Closing intraday           | Percentual difference between $s_i^c$ and $s_{i+1}^c$.    | 
+| Open/Close intraday        | Percentual difference between $s_i^o$ and $s_{i-1}^c$.    |
+| Open/Close daily           | Percentual difference between $s_i^{d(o, c)}$.            |  
+| Low/High daily             | Percentual difference between $s_i^{d(l, h)}$.            |  
 | Vol.  (yearly)             | Percentual difference between $L_j^{v_y}$ and $s_i^v$.    |   
 | Vol.  (quarterly)          | Percentual difference between $L_j^{v_q}$ and $s_i^v$.    | 
 | Vol.  (monthly)            | Percentual difference between $L_j^{v_m}$ and $s_i^v$.    | 
