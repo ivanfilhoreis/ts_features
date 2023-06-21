@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 # Authors: Ivan José dos Reis Filho <ivan.filho@uemg.br>
-
 import pandas as pd
 import pymannkendall as mk
 import math
 import numpy as np
 
-##__all__ = ['ts_features']
+#__all__ = ['ts_features']
 
-class tsf_vectorizer:
+class ts_features:
     
-    r""" 
-    This module extracts features from prices series.
+    r"""
+    This module extracts information from time series of prices.
     
     The algorithm extracts differences in values extracted from the levels of each time interval, 
     trends, seasonality, volumes, daily oscillations, and differences between opening
@@ -20,16 +19,17 @@ class tsf_vectorizer:
     """
     
     def __init__(self, 
-                 mult = True,
+                 mult   = True,
                  levels = True,
                  trends = True,
-                 seas = True,
-                 vol = True,
-                 osc = True,
-                 lag = False,
+                 seas   = True,
+                 vol    = True,
+                 osc    = True,
+                 lag    = False,
                  diff_vl = True,
+                 label = False,
                  feature = 'perc', # label, perc, value
-                 steps = 'wmsy',
+                 steps  = 'wmsy',
                  slice_month = int(15),
                  slice_year = int(3)
                  )->None:
@@ -40,8 +40,10 @@ class tsf_vectorizer:
         self.seas = seas
         self.vol = vol
         self.osc = osc
+        self.lag = lag
         self.feature = feature
         self.diff_vl = diff_vl
+        self.label = label
         self.steps = steps
         self.slice_month = slice_month
         self.slice_year = slice_year
@@ -419,50 +421,63 @@ class tsf_vectorizer:
                         
         return ts
     
-    def daily_osc(self, ts):
+    def intraday_values(self, ts):
         
         
         if self.feature == 'label' and self.osc:
-            ts['daily_diff'] = 0.0
-            ts['daily_diff'] = ts['Close'].pct_change().round(decimals=4) * 100
-            ts.loc[ts['daily_diff'] > 0, 'daily_diff'] = 1
-            ts.loc[ts['daily_diff'] < 0, 'daily_diff'] = -1
+            
+            ts['close_intraday'] = 0.0
+            ts['close_intraday'] = ts['Close'].pct_change().round(decimals=4) * 100
+            ts.loc[ts['close_intraday'] > 0.1, 'close_intraday'] = 1
+            ts.loc[ts['close_intraday'] < 0.1, 'close_intraday'] = -1
+
+            ts['op_cl_intraday'] = 0.0
+            ts['aux'] = ts['Close'].shift(1)
+            ts['op_cl_intraday'] = ((ts[['aux', 'Open']].pct_change(axis=1))['Open'] * 100).round(2)
+            ts.loc[ts['op_cl_intraday'] > 0.1, 'op_cl_intraday'] = 1
+            ts.loc[ts['op_cl_intraday'] < 0.1, 'op_cl_intraday'] = -1
+            ts.drop(columns=['aux'], inplace = True)
             
         if self.feature == 'value' and self.osc:
-            ts['daily_diff'] = 0.0
-            ts['daily_diff'] = ts['Close'].diff().round(decimals=2)
+            
+            ts['close_intraday'] = ts['Close'].diff().round(decimals=2)
+            ts['op_cl_intraday'] = ts['Open'] - ts['Close'].shift(1)
             
         if self.feature == 'perc' and self.osc:
-            ts['daily_diff'] = 0.0
-            ts['daily_diff'] = ts['Close'].pct_change().round(decimals=4) * 100
+            #ts['close_intraday'] = 0.0
+            ts['close_intraday'] = ts['Close'].pct_change().round(decimals=4) * 100
+
+            ts['aux'] = ts['Close'].shift(1)
+            ts['op_cl_intraday'] = ((ts[['aux', 'Open']].pct_change(axis=1))['Open'] * 100).round(2)
+            ts.drop(columns=['aux'], inplace = True)
 
         return ts
     
-    def diff_values(self, ts):
+    def daily_values(self, ts):
          
         if self.feature == 'label' and self.diff_vl:
             diff = ts[['Open', 'Close']].pct_change(axis='columns').round(decimals=4) * 100
-            ts['op_cl_diff']= diff['Close']
-            ts.loc[ts['op_cl_diff'] > 0, 'op_cl_diff'] = 1
-            ts.loc[ts['op_cl_diff'] < 0, 'op_cl_diff'] = -1
+            ts['open_close']= diff['Close']
+            ts.loc[ts['open_close'] > 0, 'open_close'] = 1
+            ts.loc[ts['open_close'] < 0, 'open_close'] = -1
             
             diff = ts[['Low', 'High']].pct_change(axis='columns').round(decimals=4) * 100
-            ts['lw_hg_diff'] = diff['High']
-            ts.loc[ts['lw_hg_diff'] > 0, 'lw_hg_diff'] = 1
-            ts.loc[ts['lw_hg_diff'] < 0, 'lw_hg_diff'] = -1
+            ts['low_high'] = diff['High']
+            ts.loc[ts['low_high'] > 0, 'low_high'] = 1
+            ts.loc[ts['low_high'] < 0, 'low_high'] = -1
             
         if self.feature == 'value' and self.diff_vl:
             diff = ts[['Open', 'Close']].diff(axis='columns').round(decimals=2)
-            ts['op_cl_diff']= diff['Close']
+            ts['open_close']= diff['Close']
             diff = ts[['Low', 'High']].diff(axis='columns').round(decimals=2)
-            ts['lw_hg_diff'] = diff['High']
+            ts['low_high'] = diff['High']
             
         if self.feature == 'perc' and self.diff_vl:
             diff = ts[['Open', 'Close']].pct_change(axis='columns').round(decimals=4) * 100
-            ts['op_cl_diff']= diff['Close']
+            ts['open_close']= diff['Close']
             
             diff = ts[['Low', 'High']].pct_change(axis='columns').round(decimals=4) * 100
-            ts['lw_hg_diff'] = diff['High']
+            ts['low_high'] = diff['High']
         
         return ts
     
@@ -472,6 +487,29 @@ class tsf_vectorizer:
         tse.set_index('Date', inplace=True)
   
         return tse
+    
+    def custom_sum(self, row):
+
+        sum_lbs = row.sum()
+        vl = 0
+        if sum_lbs > len(row)/2:
+            vl = 1
+    
+        return vl
+
+    def extract_label(self, ts):
+
+        self.feature = 'label'
+        self.seas = False
+        self.trends = False
+
+        ts_label = self.fit_transform(ts)
+        df = ts_label.replace(-1.0, 0)
+
+        df.drop(['Close', 'Volume', 'Open', 'High', 'Low'], axis=1, inplace=True)
+        df['label'] = df.apply(self.custom_sum, axis = 1)
+        
+        return df
     
     def fit_transform(self, ts):
         
@@ -490,6 +528,7 @@ class tsf_vectorizer:
             raise ValueError(
                 "The parameter \"steps\" should be \"wmsy\", \"wmy\", \"my\", \"m\" or \"y\""
                 )
+            
         if self.feature not in['perc', 'value', 'label']:
             
             raise ValueError(
@@ -499,21 +538,24 @@ class tsf_vectorizer:
         if self.mult:
             
             ts = self.pre_processing(ts)
-            ts = self.daily_osc(ts)     
-            ts = self.diff_values(ts)   
-            ts = self.get_level(ts)     
+            ts = self.intraday_values(ts)     
+            ts = self.daily_values(ts)   
+            ts = self.get_vol(ts) 
             ts = self.get_trends(ts)    # Melhorar: talvez colocar erro
             ts = self.get_seas(ts)      
-            ts = self.get_vol(ts)       
+            ts = self.get_level(ts)      
             ts = self.end_ts(ts)        
            
         else:
             
             ts = self.pre_processing(ts)
-            ts = self.daily_osc(ts)
+            ts = self.intraday_values(ts)
             ts = self.get_level(ts)
             ts = self.get_trends(ts)
             ts = self.get_seas(ts)
             ts = self.end_ts(ts)
-            
+        
+        ts.fillna(0, inplace=True)
+
         return ts
+    
