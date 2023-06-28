@@ -512,9 +512,9 @@ class tsf_vectorizer:
         
         ts_lb.drop(['Close', 'Volume', 'Open', 'High', 'Low'], axis=1, inplace=True)
         ts_lb['label'] = ts_lb.apply(self.custom_sum, axis = 1)
-        ts_merge = pd.merge(ts_cp, ts_lb[['Date', 'label']], left_on="Date", right_on="Date")
+        ts_merge = pd.merge(ts_cp, ts_lb, left_on="Date", right_on="Date")
         
-        return ts_merge
+        return ts_merge[['Date', 'Close', 'Volume', 'Open', 'High', 'Low', 'label']]
     
     def fit_transform(self, ts):
         
