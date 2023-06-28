@@ -5,11 +5,11 @@ import pymannkendall as mk
 import math
 import numpy as np
 
-#__all__ = ['ts_features']
+#__all__ = ['tsf_vectorizer']
 
 class tsf_vectorizer:
     
-    r"""
+    r""" 
     This module extracts information from time series of prices.
     
     The algorithm extracts differences in values extracted from the levels of each time interval, 
@@ -47,6 +47,7 @@ class tsf_vectorizer:
         self.steps = steps
         self.slice_month = slice_month
         self.slice_year = slice_year
+        self.bin = tuple()
         
     def pre_processing(self, ts):
         
@@ -59,6 +60,8 @@ class tsf_vectorizer:
         ts['slice_year'] = [int(b.strftime('%m')) / self.slice_year for b in ts.Date]
         ts['slice_year'] = ts['slice_year'].apply(lambda x: math.ceil(x))
         
+        #ts.set_index('Date', inplace=True)
+
         return ts
     
     def get_level(self, ts):
@@ -423,7 +426,6 @@ class tsf_vectorizer:
     
     def intraday_values(self, ts):
         
-        
         if self.feature == 'label' and self.osc:
             
             ts['close_intraday'] = 0.0
@@ -481,35 +483,38 @@ class tsf_vectorizer:
         
         return ts
     
-    def end_ts(self, ts):
+    def end_processing(self, ts):
 
         tse = ts.drop(columns=['year', 'month', 'slice_month', 'slice_year'])
-        tse.set_index('Date', inplace=True)
-  
+        
         return tse
     
-    def custom_sum(self, row):
-
-        sum_lbs = row.sum()
+    def custom_sum(self, feat):
+        
+        row = feat.drop(['Date'])
+        sum_lbs = abs(row.sum())
         vl = 0
         if sum_lbs > len(row)/2:
-            vl = 1
+            vl = self.bin[1]
     
         return vl
 
-    def extract_label(self, ts):
+    def extract_label(self, ts, bin=(0,1)):
 
         self.feature = 'label'
         self.seas = False
         self.trends = False
+        self.bin = bin
+        ts_cp = ts.copy()
 
         ts_label = self.fit_transform(ts)
-        df = ts_label.replace(-1.0, 0)
-
-        df.drop(['Close', 'Volume', 'Open', 'High', 'Low'], axis=1, inplace=True)
-        df['label'] = df.apply(self.custom_sum, axis = 1)
+        ts_lb = ts_label.replace(-self.bin[1], 0)
         
-        return df
+        ts_lb.drop(['Close', 'Volume', 'Open', 'High', 'Low'], axis=1, inplace=True)
+        ts_lb['label'] = ts_lb.apply(self.custom_sum, axis = 1)
+        ts_merge = pd.merge(ts_cp, ts_lb[['Date', 'label']], left_on="Date", right_on="Date")
+        
+        return ts_merge
     
     def fit_transform(self, ts):
         
@@ -524,13 +529,11 @@ class tsf_vectorizer:
                 )
            
         if self.steps not in ['wmsy','wmy', 'my', 'm', 'y']:
-            
             raise ValueError(
                 "The parameter \"steps\" should be \"wmsy\", \"wmy\", \"my\", \"m\" or \"y\""
                 )
             
         if self.feature not in['perc', 'value', 'label']:
-            
             raise ValueError(
                 "The parameter \"features\" should be \"perc\", \"value\" or \"label\""
                 )
@@ -544,7 +547,7 @@ class tsf_vectorizer:
             ts = self.get_trends(ts)    # Melhorar: talvez colocar erro
             ts = self.get_seas(ts)      
             ts = self.get_level(ts)      
-            ts = self.end_ts(ts)        
+            ts = self.end_processing(ts)        
            
         else:
             
@@ -553,9 +556,9 @@ class tsf_vectorizer:
             ts = self.get_level(ts)
             ts = self.get_trends(ts)
             ts = self.get_seas(ts)
-            ts = self.end_ts(ts)
+            ts = self.end_processing(ts)
         
         ts.fillna(0, inplace=True)
-
+        
         return ts
     
